@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>할일 관리 애플리케이션</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>할일 관리</h1>
+            <button id="addTodoBtn" class="add-btn">새로운 할일 추가하기</button>
+        </header>
+
+        <main>
+            <div id="todayTodosSection" class="todo-section">
+                <!-- 오늘의 할일이 여기에 동적으로 추가됩니다 -->
+            </div>
+            <div class="view-controls">
+                <button id="listViewBtn" class="view-btn active">목록으로 보기</button>
+                <button id="calendarViewBtn" class="view-btn">달력으로 보기</button>
+            </div>
+            <div id="todoList" class="todo-list">
+                <!-- 모든 할일 목록이 여기에 동적으로 추가됩니다 -->
+            </div>
+            <div id="calendarView" class="calendar-view" style="display: none;">
+                <!-- 달력이 여기에 동적으로 추가됩니다 -->
+            </div>
+        </main>
+    </div>
+
+    <!-- 할일 추가 모달 -->
+    <div id="todoModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>새 할일 추가</h2>
+                <span class="close">&times;</span>
+            </div>
+            <form id="todoForm">
+                <div class="form-group">
+                    <label for="todoTitle">제목</label>
+                    <input type="text" id="todoTitle" name="title" required>
+                </div>
+                <div class="form-group">
+                    <label for="todoDescription">상세 내용</label>
+                    <textarea id="todoDescription" name="description" rows="4" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="todoDate">날짜</label>
+                    <input type="date" id="todoDate" name="date" required>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="cancel-btn" id="cancelBtn">취소</button>
+                    <button type="submit" class="submit-btn">추가</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 할일 상세 정보 모달 -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>할일 상세 정보</h2>
+                <span class="close detail-close">&times;</span>
+            </div>
+            <div id="detailContent" class="detail-content">
+                <!-- 읽기 모드 -->
+                <div id="detailViewMode">
+                    <div class="form-group">
+                        <label>제목</label>
+                        <div class="detail-field" id="detailTitle"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>상세 내용</label>
+                        <div class="detail-field" id="detailDescription"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>날짜</label>
+                        <div class="detail-field" id="detailDate"></div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="edit-btn" id="editTodoBtn">상세 정보 편집</button>
+                        <button type="button" class="toggle-complete-btn" id="toggleCompleteBtn">완료/미완료 전환</button>
+                        <button type="button" class="cancel-btn" id="detailCancelBtn">닫기</button>
+                    </div>
+                </div>
+                <!-- 편집 모드 -->
+                <form id="editTodoForm" style="display: none;">
+                    <div class="form-group">
+                        <label for="editTitle">제목</label>
+                        <input type="text" id="editTitle" name="title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editDescription">상세 내용</label>
+                        <textarea id="editDescription" name="description" rows="4" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="editDate">날짜</label>
+                        <input type="date" id="editDate" name="date" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="cancel-btn" id="cancelEditBtn">취소</button>
+                        <button type="submit" class="submit-btn">저장</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 날짜별 할일 목록 모달 -->
+    <div id="dateTodosModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="dateTodosModalTitle">할 일 목록</h2>
+                <span class="close date-todos-close">&times;</span>
+            </div>
+            <div id="dateTodosContent" class="date-todos-content">
+                <!-- 날짜별 할일 목록이 여기에 동적으로 추가됩니다 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 날짜별 새 할일 추가 모달 -->
+    <div id="dateAddModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>이 날짜에 새 할일 추가</h2>
+                <span class="close date-add-close">&times;</span>
+            </div>
+            <form id="dateAddForm">
+                <div class="form-group">
+                    <label>선택한 날짜</label>
+                    <div class="detail-field" id="dateAddSelectedDate"></div>
+                </div>
+                <div class="form-group">
+                    <label for="dateAddTitle">제목</label>
+                    <input type="text" id="dateAddTitle" name="dateAddTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="dateAddDescription">상세 내용</label>
+                    <textarea id="dateAddDescription" name="dateAddDescription" rows="4" required></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="cancel-btn" id="dateAddCancelBtn">취소</button>
+                    <button type="submit" class="submit-btn">추가</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
