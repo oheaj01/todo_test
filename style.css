@@ -321,6 +321,10 @@ main {
     animation: fadeIn 0.3s ease;
 }
 
+#detailModal {
+    z-index: 1100;
+}
+
 .modal.show {
     display: flex;
     justify-content: center;
@@ -331,6 +335,7 @@ main {
     from {
         opacity: 0;
     }
+
     to {
         opacity: 1;
     }
@@ -350,6 +355,7 @@ main {
         transform: translateY(50px);
         opacity: 0;
     }
+
     to {
         transform: translateY(0);
         opacity: 1;
@@ -796,6 +802,7 @@ main {
 }
 
 @media (max-width: 900px) {
+
     .calendar-weekdays,
     .calendar-days {
         grid-template-columns: repeat(7, minmax(100px, 1fr));
@@ -807,6 +814,7 @@ main {
 }
 
 @media (max-width: 700px) {
+
     .calendar-weekdays,
     .calendar-days {
         grid-template-columns: repeat(7, minmax(70px, 1fr));
@@ -843,4 +851,3 @@ main {
         background: #6c757d;
     }
 }
-

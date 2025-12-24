@@ -236,6 +236,16 @@ function openDateTodosModal(dateStr) {
                 deleteTodo(id);
             });
         });
+
+        document.querySelectorAll('.date-todo-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                const id = item.dataset.id;
+                const todo = todos.find(t => String(t.id) === String(id));
+                if (todo) {
+                    openDetailModal(todo);
+                }
+            });
+        });
     }
 
     const addBtn = dateTodosContent.querySelector('.date-add-btn');
@@ -663,6 +673,11 @@ function loadTodos() {
             renderAllTodos();
         } else {
             renderCalendar();
+        }
+
+        // 날짜별 할일 목록 모달이 열려있다면 갱신
+        if (dateTodosModal.classList.contains('show') && currentDateTodosDate) {
+            openDateTodosModal(currentDateTodosDate);
         }
     }, (error) => {
         console.error('Firebase 로드 오류:', error);
