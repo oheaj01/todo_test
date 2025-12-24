@@ -1,6 +1,24 @@
 // 할일 데이터를 저장할 배열
 let todos = [];
 
+// Firebase 초기화
+const firebaseConfig = {
+    apiKey: "AIzaSyAfWlQkwnQOAtV-TaykZByLaYEptq2rP3c",
+    authDomain: "todo-f0893.firebaseapp.com",
+    databaseURL: "https://todo-f0893-default-rtdb.firebaseio.com",
+    projectId: "todo-f0893",
+    storageBucket: "todo-f0893.firebasestorage.app",
+    messagingSenderId: "507392242924",
+    appId: "1:507392242924:web:2e3fb146b6eb8655b3e1c9",
+    measurementId: "G-51Z98J52HD"
+};
+
+// Firebase 앱 초기화
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+const todosRef = database.ref('todos');
+
+
 // 뷰 모드 상태 ('list' 또는 'calendar')
 let currentView = 'list';
 let allTodosFilter = 'all';
@@ -98,36 +116,29 @@ function addTodo(title, description, date) {
 
 // 할일 완료 처리
 function completeTodo(id) {
-    const todo = todos.find(t => t.id === id);
+    const todo = todos.find(t => String(t.id) === String(id));
     if (todo) {
-        todo.completed = !todo.completed;
-        saveTodos();
-        renderTodayTodos();
-        if (currentView === 'list') {
-            renderAllTodos();
-        } else {
-            renderCalendar();
-        }
-        if (dateTodosModal.classList.contains('show') && currentDateTodosDate) {
-            openDateTodosModal(currentDateTodosDate);
-        }
+        const newStatus = !todo.completed;
+        // Firebase에서 직접 업데이트
+        todosRef.child(String(id)).update({
+            completed: newStatus
+        }).catch(error => {
+            console.error('Firebase 업데이트 오류:', error);
+        });
     }
 }
 
 // 할일 삭제 처리
 function deleteTodo(id) {
     if (confirm('정말 이 할일을 삭제하시겠습니까?')) {
-        todos = todos.filter(t => t.id !== id);
-        saveTodos();
-        renderTodayTodos();
-        if (currentView === 'list') {
-            renderAllTodos();
-        } else {
-            renderCalendar();
-        }
-        if (dateTodosModal.classList.contains('show') && currentDateTodosDate) {
-            openDateTodosModal(currentDateTodosDate);
-        }
+        // Firebase에서 직접 삭제 (ID를 문자열로 변환)
+        todosRef.child(String(id)).remove()
+            .then(() => {
+                console.log('할일이 삭제되었습니다.');
+            })
+            .catch(error => {
+                console.error('Firebase 삭제 오류:', error);
+            });
     }
 }
 
@@ -213,7 +224,7 @@ function openDateTodosModal(dateStr) {
         document.querySelectorAll('.date-todo-complete').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const id = parseInt(btn.dataset.id);
+                const id = btn.dataset.id; // Keep as string for Firebase
                 completeTodo(id);
             });
         });
@@ -221,7 +232,7 @@ function openDateTodosModal(dateStr) {
         document.querySelectorAll('.date-todo-delete').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const id = parseInt(btn.dataset.id);
+                const id = btn.dataset.id; // Keep as string for Firebase
                 deleteTodo(id);
             });
         });
@@ -331,10 +342,10 @@ function createTodoItemHTML(todo) {
             <div class="todo-content">
                 <div class="todo-description">${escapeHtml(todo.description)}</div>
                 <div class="todo-actions" onclick="event.stopPropagation()">
-                    <button class="todo-action-btn complete-btn" onclick="completeTodo(${todo.id})">
+                    <button class="todo-action-btn complete-btn" data-id="${todo.id}">
                         ${todo.completed ? '완료 취소' : '완료'}
                     </button>
-                    <button class="todo-action-btn delete-btn" onclick="deleteTodo(${todo.id})">삭제</button>
+                    <button class="todo-action-btn delete-btn" data-id="${todo.id}">삭제</button>
                 </div>
             </div>
         </div>
@@ -356,8 +367,9 @@ function renderTodayTodos() {
         todayTodosSection.innerHTML = '';
     }
 
-    // 할일 항목 클릭 이벤트 추가
-    attachTodoItemEvents();
+} else {
+    todayTodosSection.innerHTML = '';
+}
 }
 
 // 뷰 모드 전환
@@ -426,24 +438,50 @@ function renderAllTodos() {
         });
     });
 
-    // 할일 항목 클릭 이벤트 추가
-    attachTodoItemEvents();
-}
-
-// 할일 항목 이벤트 연결
-function attachTodoItemEvents() {
-    document.querySelectorAll('.todo-item').forEach(item => {
-        item.addEventListener('click', (e) => {
-            // 버튼 클릭이 아닌 경우에만 모달 열기
-            if (!e.target.closest('.todo-actions')) {
-                const todoId = parseInt(item.dataset.id);
-                const todo = todos.find(t => t.id === todoId);
-                if (todo) {
-                    openDetailModal(todo);
-                }
+    document.querySelectorAll('.todos-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const filter = btn.dataset.filter;
+            if (filter && filter !== allTodosFilter) {
+                allTodosFilter = filter;
+                renderAllTodos();
             }
         });
     });
+}
+
+// 할일 항목 이벤트 위임 (컨테이너에 한 번만 연결)
+function setupTodoItemEvents() {
+    const handleTodoClick = (e) => {
+        const item = e.target.closest('.todo-item');
+        if (!item) return;
+
+        const todoId = item.dataset.id;
+
+        // 삭제 버튼 클릭
+        if (e.target.closest('.delete-btn')) {
+            e.stopPropagation();
+            deleteTodo(todoId);
+            return;
+        }
+
+        // 완료 버튼 클릭
+        if (e.target.closest('.complete-btn')) {
+            e.stopPropagation();
+            completeTodo(todoId);
+            return;
+        }
+
+        // 항목 클릭 (상세 모달)
+        if (!e.target.closest('.todo-actions')) {
+            const todo = todos.find(t => String(t.id) === String(todoId));
+            if (todo) {
+                openDetailModal(todo);
+            }
+        }
+    };
+
+    todayTodosSection.addEventListener('click', handleTodoClick);
+    todoList.addEventListener('click', handleTodoClick);
 }
 
 // 달력 렌더링
@@ -537,9 +575,21 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// 로컬 스토리지에 저장 (비활성화됨)
+// Firebase에 저장
 function saveTodos() {
-    // 로컬 스토리지 사용 안 함
+    // todos 배열을 객체로 변환하여 Firebase에 저장
+    const todosObject = {};
+    todos.forEach(todo => {
+        todosObject[todo.id] = {
+            title: todo.title,
+            description: todo.description,
+            date: todo.date,
+            completed: todo.completed
+        };
+    });
+    todosRef.set(todosObject).catch(error => {
+        console.error('Firebase 저장 오류:', error);
+    });
 }
 
 // 샘플 데이터 추가
@@ -600,10 +650,33 @@ function addSampleTodos() {
     saveTodos();
 }
 
-// 로컬 스토리지에서 불러오기 (비활성화됨)
+// Firebase에서 불러오기
 function loadTodos() {
-    // 로컬 스토리지 사용 안 함
-    // 빈 상태로 시작
+    // Firebase에서 실시간으로 데이터 로드
+    todosRef.on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            // Firebase 객체를 배열로 변환
+            todos = Object.keys(data).map(id => ({
+                id: parseInt(id),
+                title: data[id].title,
+                description: data[id].description,
+                date: data[id].date,
+                completed: data[id].completed
+            }));
+        } else {
+            todos = [];
+        }
+        // UI 업데이트
+        renderTodayTodos();
+        if (currentView === 'list') {
+            renderAllTodos();
+        } else {
+            renderCalendar();
+        }
+    }, (error) => {
+        console.error('Firebase 로드 오류:', error);
+    });
 }
 
 // 이벤트 리스너
@@ -714,7 +787,8 @@ document.addEventListener('keydown', (e) => {
 });
 
 // 초기화
+// 초기화
+setupTodoItemEvents();
 loadTodos();
-renderTodayTodos();
-switchView('list');
+
 
