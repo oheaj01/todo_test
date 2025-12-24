@@ -140,15 +140,15 @@ function openDetailModal(todo) {
     document.getElementById('detailTitle').textContent = todo.title;
     document.getElementById('detailDescription').textContent = todo.description;
     document.getElementById('detailDate').textContent = formatDate(todo.date);
-    
+
     // 완료/미완료 전환 버튼 텍스트 업데이트
     const toggleBtn = document.getElementById('toggleCompleteBtn');
     toggleBtn.textContent = todo.completed ? '미완료로 전환' : '완료로 전환';
-    
+
     // 읽기 모드로 전환
     document.getElementById('detailViewMode').style.display = 'block';
     document.getElementById('editTodoForm').style.display = 'none';
-    
+
     detailModal.classList.add('show');
 }
 
@@ -171,9 +171,9 @@ function openDateTodosModal(dateStr) {
     const day = date.getDate();
     const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
     const weekday = weekdays[date.getDay()];
-    
+
     dateTodosModalTitle.textContent = `${year}년 ${month}월 ${day}일 (${weekday}) 할 일 목록`;
-    
+
     const todosMarkup = dayTodos.length > 0
         ? `
             <div class="date-todos-list">
@@ -262,12 +262,12 @@ function closeDateAddModal() {
 function enterEditMode() {
     const todo = todos.find(t => t.id === currentDetailTodoId);
     if (!todo) return;
-    
+
     // 편집 폼에 현재 값 채우기
     document.getElementById('editTitle').value = todo.title;
     document.getElementById('editDescription').value = todo.description;
     document.getElementById('editDate').value = todo.date;
-    
+
     // 모드 전환
     document.getElementById('detailViewMode').style.display = 'none';
     document.getElementById('editTodoForm').style.display = 'block';
@@ -344,7 +344,7 @@ function createTodoItemHTML(todo) {
 // 오늘의 할일 섹션 렌더링
 function renderTodayTodos() {
     const todayTodos = todos.filter(todo => isToday(todo.date));
-    
+
     if (todayTodos.length > 0) {
         todayTodosSection.innerHTML = `
             <h2 class="section-title">오늘의 할일</h2>
@@ -355,7 +355,7 @@ function renderTodayTodos() {
     } else {
         todayTodosSection.innerHTML = '';
     }
-    
+
     // 할일 항목 클릭 이벤트 추가
     attachTodoItemEvents();
 }
@@ -363,7 +363,7 @@ function renderTodayTodos() {
 // 뷰 모드 전환
 function switchView(view) {
     currentView = view;
-    
+
     if (view === 'list') {
         todoList.style.display = 'block';
         calendarView.style.display = 'none';
@@ -406,10 +406,10 @@ function renderAllTodos() {
                 </div>
             </div>
             <div class="section-todos">
-                ${allTodos.length > 0 
-                    ? allTodos.map(todo => createTodoItemHTML(todo)).join('')
-                    : '<div class="empty-state"><p>할일이 없습니다.</p></div>'
-                }
+                ${allTodos.length > 0
+            ? allTodos.map(todo => createTodoItemHTML(todo)).join('')
+            : '<div class="empty-state"><p>할일이 없습니다.</p></div>'
+        }
             </div>
         </div>
     `;
@@ -476,7 +476,7 @@ function renderCalendar() {
         const dateStr = `${currentCalendarYear}-${String(currentCalendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const dayTodos = todos.filter(todo => todo.date === dateStr);
         const isTodayDate = dateStr === getTodayDate();
-        
+
         html += `
             <div class="calendar-day ${isTodayDate ? 'today' : ''}" data-date="${dateStr}">
                 <div class="calendar-day-number">${day}</div>
@@ -537,9 +537,9 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// 로컬 스토리지에 저장
+// 로컬 스토리지에 저장 (비활성화됨)
 function saveTodos() {
-    localStorage.setItem('todos', JSON.stringify(todos));
+    // 로컬 스토리지 사용 안 함
 }
 
 // 샘플 데이터 추가
@@ -596,19 +596,14 @@ function addSampleTodos() {
             todos.push(todo);
         }
     });
-    
+
     saveTodos();
 }
 
-// 로컬 스토리지에서 불러오기
+// 로컬 스토리지에서 불러오기 (비활성화됨)
 function loadTodos() {
-    const savedTodos = localStorage.getItem('todos');
-    if (savedTodos) {
-        todos = JSON.parse(savedTodos);
-    } else {
-        // 저장된 데이터가 없으면 샘플 데이터 추가
-        addSampleTodos();
-    }
+    // 로컬 스토리지 사용 안 함
+    // 빈 상태로 시작
 }
 
 // 이벤트 리스너
