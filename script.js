@@ -341,7 +341,7 @@ function createTodoItemHTML(todo) {
             </div>
             <div class="todo-content">
                 <div class="todo-description">${escapeHtml(todo.description)}</div>
-                <div class="todo-actions" onclick="event.stopPropagation()">
+                <div class="todo-actions">
                     <button class="todo-action-btn complete-btn" data-id="${todo.id}">
                         ${todo.completed ? '완료 취소' : '완료'}
                     </button>
@@ -366,45 +366,46 @@ function renderTodayTodos() {
     } else {
         todayTodosSection.innerHTML = '';
     }
+}
 
 
 
-    // 뷰 모드 전환
-    function switchView(view) {
-        currentView = view;
+// 뷰 모드 전환
+function switchView(view) {
+    currentView = view;
 
-        if (view === 'list') {
-            todoList.style.display = 'block';
-            calendarView.style.display = 'none';
-            listViewBtn.classList.add('active');
-            calendarViewBtn.classList.remove('active');
-            renderAllTodos();
-        } else {
-            todoList.style.display = 'none';
-            calendarView.style.display = 'block';
-            listViewBtn.classList.remove('active');
-            calendarViewBtn.classList.add('active');
-            renderCalendar();
-        }
+    if (view === 'list') {
+        todoList.style.display = 'block';
+        calendarView.style.display = 'none';
+        listViewBtn.classList.add('active');
+        calendarViewBtn.classList.remove('active');
+        renderAllTodos();
+    } else {
+        todoList.style.display = 'none';
+        calendarView.style.display = 'block';
+        listViewBtn.classList.remove('active');
+        calendarViewBtn.classList.add('active');
+        renderCalendar();
+    }
+}
+
+// 모든 할일 목록 렌더링 (목록 뷰용)
+function renderAllTodos() {
+    // 모든 할일을 날짜순으로 정렬 (가장 빠른 일자부터)
+    let allTodos = [...todos].sort((a, b) => {
+        return new Date(a.date) - new Date(b.date);
+    });
+
+    if (allTodosFilter === 'completed') {
+        allTodos = allTodos.filter(todo => todo.completed);
+    } else if (allTodosFilter === 'pending') {
+        allTodos = allTodos.filter(todo => !todo.completed);
     }
 
-    // 모든 할일 목록 렌더링 (목록 뷰용)
-    function renderAllTodos() {
-        // 모든 할일을 날짜순으로 정렬 (가장 빠른 일자부터)
-        let allTodos = [...todos].sort((a, b) => {
-            return new Date(a.date) - new Date(b.date);
-        });
+    let html = '';
 
-        if (allTodosFilter === 'completed') {
-            allTodos = allTodos.filter(todo => todo.completed);
-        } else if (allTodosFilter === 'pending') {
-            allTodos = allTodos.filter(todo => !todo.completed);
-        }
-
-        let html = '';
-
-        // 모든 할일 섹션
-        html += `
+    // 모든 할일 섹션
+    html += `
         <div class="todo-section">
             <div class="section-header">
                 <h2 class="section-title">모든 할일</h2>
@@ -416,71 +417,71 @@ function renderTodayTodos() {
             </div>
             <div class="section-todos">
                 ${allTodos.length > 0
-                ? allTodos.map(todo => createTodoItemHTML(todo)).join('')
-                : '<div class="empty-state"><p>할일이 없습니다.</p></div>'
-            }
+            ? allTodos.map(todo => createTodoItemHTML(todo)).join('')
+            : '<div class="empty-state"><p>할일이 없습니다.</p></div>'
+        }
             </div>
         </div>
     `;
 
-        todoList.innerHTML = html;
+    todoList.innerHTML = html;
 
-        document.querySelectorAll('.todos-filter-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const filter = btn.dataset.filter;
-                if (filter && filter !== allTodosFilter) {
-                    allTodosFilter = filter;
-                    renderAllTodos();
-                }
-            });
+    document.querySelectorAll('.todos-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const filter = btn.dataset.filter;
+            if (filter && filter !== allTodosFilter) {
+                allTodosFilter = filter;
+                renderAllTodos();
+            }
         });
+    });
 
 
-    }
+}
 
-    // 할일 항목 이벤트 위임 (컨테이너에 한 번만 연결)
-    function setupTodoItemEvents() {
-        const handleTodoClick = (e) => {
-            const item = e.target.closest('.todo-item');
-            if (!item) return;
+// 할일 항목 이벤트 위임 (컨테이너에 한 번만 연결)
+function setupTodoItemEvents() {
+    const handleTodoClick = (e) => {
+        const item = e.target.closest('.todo-item');
+        if (!item) return;
 
-            const todoId = item.dataset.id;
+        const todoId = item.dataset.id;
 
-            // 삭제 버튼 클릭
-            if (e.target.closest('.delete-btn')) {
-                e.stopPropagation();
-                deleteTodo(todoId);
-                return;
+        // 삭제 버튼 클릭
+        if (e.target.closest('.delete-btn')) {
+            e.stopPropagation();
+            deleteTodo(todoId);
+            return;
+        }
+
+        // 완료 버튼 클릭
+        if (e.target.closest('.complete-btn')) {
+            e.stopPropagation();
+            completeTodo(todoId);
+            return;
+        }
+
+        // 항목 클릭 (상세 모달)
+        if (!e.target.closest('.todo-actions')) {
+            const todo = todos.find(t => String(t.id) === String(todoId));
+            if (todo) {
+                openDetailModal(todo);
             }
+        }
+    };
 
-            // 완료 버튼 클릭
-            if (e.target.closest('.complete-btn')) {
-                e.stopPropagation();
-                completeTodo(todoId);
-                return;
-            }
+    todayTodosSection.addEventListener('click', handleTodoClick);
+    todoList.addEventListener('click', handleTodoClick);
+}
 
-            // 항목 클릭 (상세 모달)
-            if (!e.target.closest('.todo-actions')) {
-                const todo = todos.find(t => String(t.id) === String(todoId));
-                if (todo) {
-                    openDetailModal(todo);
-                }
-            }
-        };
+// 달력 렌더링
+function renderCalendar() {
+    const firstDay = new Date(currentCalendarYear, currentCalendarMonth, 1).getDay();
+    const daysInMonth = new Date(currentCalendarYear, currentCalendarMonth + 1, 0).getDate();
+    const monthNames = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+    const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
 
-        todayTodosSection.addEventListener('click', handleTodoClick);
-        todoList.addEventListener('click', handleTodoClick);
-    }
-
-    // 달력 렌더링
-    function renderCalendar() {
-        const firstDay = new Date(currentCalendarYear, currentCalendarMonth, 1).getDay();
-        const daysInMonth = new Date(currentCalendarYear, currentCalendarMonth + 1, 0).getDate();
-        const monthNames = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
-        const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
-
-        let html = `
+    let html = `
         <div class="calendar-header">
             <button class="calendar-nav-btn" id="prevMonthBtn">‹</button>
             <h2 class="calendar-title">${currentCalendarYear}년 ${monthNames[currentCalendarMonth]}</h2>
@@ -493,18 +494,18 @@ function renderTodayTodos() {
             <div class="calendar-days">
     `;
 
-        // 빈 칸 추가 (첫 번째 날짜 전)
-        for (let i = 0; i < firstDay; i++) {
-            html += '<div class="calendar-day empty"></div>';
-        }
+    // 빈 칸 추가 (첫 번째 날짜 전)
+    for (let i = 0; i < firstDay; i++) {
+        html += '<div class="calendar-day empty"></div>';
+    }
 
-        // 날짜 칸 추가
-        for (let day = 1; day <= daysInMonth; day++) {
-            const dateStr = `${currentCalendarYear}-${String(currentCalendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            const dayTodos = todos.filter(todo => todo.date === dateStr);
-            const isTodayDate = dateStr === getTodayDate();
+    // 날짜 칸 추가
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dateStr = `${currentCalendarYear}-${String(currentCalendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const dayTodos = todos.filter(todo => todo.date === dateStr);
+        const isTodayDate = dateStr === getTodayDate();
 
-            html += `
+        html += `
             <div class="calendar-day ${isTodayDate ? 'today' : ''}" data-date="${dateStr}">
                 <div class="calendar-day-number">${day}</div>
                 <div class="calendar-day-todos">
@@ -516,268 +517,268 @@ function renderTodayTodos() {
                 </div>
             </div>
         `;
-        }
+    }
 
-        html += `
+    html += `
             </div>
         </div>
     `;
 
-        calendarView.innerHTML = html;
+    calendarView.innerHTML = html;
 
-        // 이벤트 리스너 추가
-        document.getElementById('prevMonthBtn').addEventListener('click', () => {
-            if (currentCalendarMonth === 0) {
-                currentCalendarMonth = 11;
-                currentCalendarYear--;
-            } else {
-                currentCalendarMonth--;
-            }
-            renderCalendar();
-        });
+    // 이벤트 리스너 추가
+    document.getElementById('prevMonthBtn').addEventListener('click', () => {
+        if (currentCalendarMonth === 0) {
+            currentCalendarMonth = 11;
+            currentCalendarYear--;
+        } else {
+            currentCalendarMonth--;
+        }
+        renderCalendar();
+    });
 
-        document.getElementById('nextMonthBtn').addEventListener('click', () => {
-            if (currentCalendarMonth === 11) {
-                currentCalendarMonth = 0;
-                currentCalendarYear++;
-            } else {
-                currentCalendarMonth++;
-            }
-            renderCalendar();
-        });
+    document.getElementById('nextMonthBtn').addEventListener('click', () => {
+        if (currentCalendarMonth === 11) {
+            currentCalendarMonth = 0;
+            currentCalendarYear++;
+        } else {
+            currentCalendarMonth++;
+        }
+        renderCalendar();
+    });
 
-        // 달력의 날짜 클릭 이벤트
-        document.querySelectorAll('.calendar-day:not(.empty)').forEach(dayElement => {
-            dayElement.addEventListener('click', (e) => {
-                const dateStr = dayElement.dataset.date;
-                if (dateStr) {
-                    openDateTodosModal(dateStr);
-                }
-            });
-        });
-    }
-
-    // HTML 이스케이프 (XSS 방지)
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-
-    // Firebase에 저장
-    function saveTodos() {
-        // todos 배열을 객체로 변환하여 Firebase에 저장
-        const todosObject = {};
-        todos.forEach(todo => {
-            todosObject[todo.id] = {
-                title: todo.title,
-                description: todo.description,
-                date: todo.date,
-                completed: todo.completed
-            };
-        });
-        todosRef.set(todosObject).catch(error => {
-            console.error('Firebase 저장 오류:', error);
-        });
-    }
-
-    // 샘플 데이터 추가
-    function addSampleTodos() {
-        const sampleTodos = [
-            {
-                id: Date.now() + 1,
-                title: '프로젝트 마감 준비',
-                description: '2025년 11월 프로젝트 최종 보고서 작성 및 발표 자료 준비',
-                date: '2025-11-28',
-                completed: false
-            },
-            {
-                id: Date.now() + 2,
-                title: '연말 회의 준비',
-                description: '12월 초 팀 회의를 위한 자료 정리 및 안건 검토',
-                date: '2025-12-03',
-                completed: false
-            },
-            {
-                id: Date.now() + 3,
-                title: '연말 정산 작업',
-                description: '2025년 연말 정산 관련 서류 준비 및 제출',
-                date: '2025-11-30',
-                completed: false
-            },
-            {
-                id: Date.now() + 4,
-                title: '새해 계획 수립',
-                description: '2026년 목표 설정 및 계획서 작성',
-                date: '2025-12-05',
-                completed: false
-            },
-            {
-                id: Date.now() + 5,
-                title: '연말 파티 준비',
-                description: '회사 연말 파티 준비 및 참석자 명단 확인',
-                date: '2025-12-10',
-                completed: false
-            },
-            {
-                id: Date.now() + 6,
-                title: '연말 보고서 작성',
-                description: '2025년 연간 업무 보고서 작성 및 제출',
-                date: '2025-12-15',
-                completed: false
-            }
-        ];
-
-        // 기존 할일과 중복되지 않도록 추가
-        const existingIds = todos.map(t => t.id);
-        sampleTodos.forEach(todo => {
-            if (!existingIds.includes(todo.id)) {
-                todos.push(todo);
+    // 달력의 날짜 클릭 이벤트
+    document.querySelectorAll('.calendar-day:not(.empty)').forEach(dayElement => {
+        dayElement.addEventListener('click', (e) => {
+            const dateStr = dayElement.dataset.date;
+            if (dateStr) {
+                openDateTodosModal(dateStr);
             }
         });
+    });
+}
 
-        saveTodos();
-    }
+// HTML 이스케이프 (XSS 방지)
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
 
-    // Firebase에서 불러오기
-    function loadTodos() {
-        // Firebase에서 실시간으로 데이터 로드
-        todosRef.on('value', (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                // Firebase 객체를 배열로 변환
-                todos = Object.keys(data).map(id => ({
-                    id: parseInt(id),
-                    title: data[id].title,
-                    description: data[id].description,
-                    date: data[id].date,
-                    completed: data[id].completed
-                }));
-            } else {
-                todos = [];
-            }
-            // UI 업데이트
-            renderTodayTodos();
-            if (currentView === 'list') {
-                renderAllTodos();
-            } else {
-                renderCalendar();
-            }
-        }, (error) => {
-            console.error('Firebase 로드 오류:', error);
-        });
-    }
+// Firebase에 저장
+function saveTodos() {
+    // todos 배열을 객체로 변환하여 Firebase에 저장
+    const todosObject = {};
+    todos.forEach(todo => {
+        todosObject[todo.id] = {
+            title: todo.title,
+            description: todo.description,
+            date: todo.date,
+            completed: todo.completed
+        };
+    });
+    todosRef.set(todosObject).catch(error => {
+        console.error('Firebase 저장 오류:', error);
+    });
+}
 
-    // 이벤트 리스너
-    addTodoBtn.addEventListener('click', openModal);
-    closeBtn.addEventListener('click', closeModal);
-    cancelBtn.addEventListener('click', closeModal);
-    detailCloseBtn.addEventListener('click', closeDetailModal);
-    detailCancelBtn.addEventListener('click', closeDetailModal);
-    dateTodosCloseBtn.addEventListener('click', closeDateTodosModal);
-    dateAddCloseBtn.addEventListener('click', closeDateAddModal);
-    dateAddCancelBtn.addEventListener('click', closeDateAddModal);
+// 샘플 데이터 추가
+function addSampleTodos() {
+    const sampleTodos = [
+        {
+            id: Date.now() + 1,
+            title: '프로젝트 마감 준비',
+            description: '2025년 11월 프로젝트 최종 보고서 작성 및 발표 자료 준비',
+            date: '2025-11-28',
+            completed: false
+        },
+        {
+            id: Date.now() + 2,
+            title: '연말 회의 준비',
+            description: '12월 초 팀 회의를 위한 자료 정리 및 안건 검토',
+            date: '2025-12-03',
+            completed: false
+        },
+        {
+            id: Date.now() + 3,
+            title: '연말 정산 작업',
+            description: '2025년 연말 정산 관련 서류 준비 및 제출',
+            date: '2025-11-30',
+            completed: false
+        },
+        {
+            id: Date.now() + 4,
+            title: '새해 계획 수립',
+            description: '2026년 목표 설정 및 계획서 작성',
+            date: '2025-12-05',
+            completed: false
+        },
+        {
+            id: Date.now() + 5,
+            title: '연말 파티 준비',
+            description: '회사 연말 파티 준비 및 참석자 명단 확인',
+            date: '2025-12-10',
+            completed: false
+        },
+        {
+            id: Date.now() + 6,
+            title: '연말 보고서 작성',
+            description: '2025년 연간 업무 보고서 작성 및 제출',
+            date: '2025-12-15',
+            completed: false
+        }
+    ];
 
-    // 뷰 모드 전환 버튼
-    listViewBtn.addEventListener('click', () => switchView('list'));
-    calendarViewBtn.addEventListener('click', () => switchView('calendar'));
-
-    // 편집 관련 이벤트 리스너
-    const editTodoBtn = document.getElementById('editTodoBtn');
-    const toggleCompleteBtn = document.getElementById('toggleCompleteBtn');
-    const editTodoForm = document.getElementById('editTodoForm');
-    const cancelEditBtn = document.getElementById('cancelEditBtn');
-
-    editTodoBtn.addEventListener('click', enterEditMode);
-    toggleCompleteBtn.addEventListener('click', toggleCompleteFromDetail);
-    cancelEditBtn.addEventListener('click', cancelEdit);
-
-    // 편집 폼 제출 처리
-    editTodoForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const title = document.getElementById('editTitle').value.trim();
-        const description = document.getElementById('editDescription').value.trim();
-        const date = document.getElementById('editDate').value;
-
-        if (title && description && date) {
-            saveEditTodo(title, description, date);
+    // 기존 할일과 중복되지 않도록 추가
+    const existingIds = todos.map(t => t.id);
+    sampleTodos.forEach(todo => {
+        if (!existingIds.includes(todo.id)) {
+            todos.push(todo);
         }
     });
 
-    // 날짜별 새 할일 추가 폼 제출 처리
-    dateAddForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const title = dateAddTitleInput.value.trim();
-        const description = dateAddDescriptionInput.value.trim();
-        const date = currentDateAddDate;
+    saveTodos();
+}
 
-        if (title && description && date) {
-            addTodo(title, description, date);
-            closeDateAddModal();
-            if (currentDateTodosDate) {
-                openDateTodosModal(currentDateTodosDate);
-            }
+// Firebase에서 불러오기
+function loadTodos() {
+    // Firebase에서 실시간으로 데이터 로드
+    todosRef.on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            // Firebase 객체를 배열로 변환
+            todos = Object.keys(data).map(id => ({
+                id: parseInt(id),
+                title: data[id].title,
+                description: data[id].description,
+                date: data[id].date,
+                completed: data[id].completed
+            }));
+        } else {
+            todos = [];
         }
+        // UI 업데이트
+        renderTodayTodos();
+        if (currentView === 'list') {
+            renderAllTodos();
+        } else {
+            renderCalendar();
+        }
+    }, (error) => {
+        console.error('Firebase 로드 오류:', error);
     });
+}
 
-    // 모달 외부 클릭 시 닫기
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
+// 이벤트 리스너
+addTodoBtn.addEventListener('click', openModal);
+closeBtn.addEventListener('click', closeModal);
+cancelBtn.addEventListener('click', closeModal);
+detailCloseBtn.addEventListener('click', closeDetailModal);
+detailCancelBtn.addEventListener('click', closeDetailModal);
+dateTodosCloseBtn.addEventListener('click', closeDateTodosModal);
+dateAddCloseBtn.addEventListener('click', closeDateAddModal);
+dateAddCancelBtn.addEventListener('click', closeDateAddModal);
+
+// 뷰 모드 전환 버튼
+listViewBtn.addEventListener('click', () => switchView('list'));
+calendarViewBtn.addEventListener('click', () => switchView('calendar'));
+
+// 편집 관련 이벤트 리스너
+const editTodoBtn = document.getElementById('editTodoBtn');
+const toggleCompleteBtn = document.getElementById('toggleCompleteBtn');
+const editTodoForm = document.getElementById('editTodoForm');
+const cancelEditBtn = document.getElementById('cancelEditBtn');
+
+editTodoBtn.addEventListener('click', enterEditMode);
+toggleCompleteBtn.addEventListener('click', toggleCompleteFromDetail);
+cancelEditBtn.addEventListener('click', cancelEdit);
+
+// 편집 폼 제출 처리
+editTodoForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const title = document.getElementById('editTitle').value.trim();
+    const description = document.getElementById('editDescription').value.trim();
+    const date = document.getElementById('editDate').value;
+
+    if (title && description && date) {
+        saveEditTodo(title, description, date);
+    }
+});
+
+// 날짜별 새 할일 추가 폼 제출 처리
+dateAddForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const title = dateAddTitleInput.value.trim();
+    const description = dateAddDescriptionInput.value.trim();
+    const date = currentDateAddDate;
+
+    if (title && description && date) {
+        addTodo(title, description, date);
+        closeDateAddModal();
+        if (currentDateTodosDate) {
+            openDateTodosModal(currentDateTodosDate);
+        }
+    }
+});
+
+// 모달 외부 클릭 시 닫기
+modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+        closeModal();
+    }
+});
+
+detailModal.addEventListener('click', (e) => {
+    if (e.target === detailModal) {
+        closeDetailModal();
+    }
+});
+
+dateTodosModal.addEventListener('click', (e) => {
+    if (e.target === dateTodosModal) {
+        closeDateTodosModal();
+    }
+});
+
+dateAddModal.addEventListener('click', (e) => {
+    if (e.target === dateAddModal) {
+        closeDateAddModal();
+    }
+});
+
+// 폼 제출 처리
+todoForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const title = document.getElementById('todoTitle').value.trim();
+    const description = document.getElementById('todoDescription').value.trim();
+    const date = document.getElementById('todoDate').value;
+
+    if (title && description && date) {
+        addTodo(title, description, date);
+    }
+});
+
+// ESC 키로 모달 닫기
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        if (modal.classList.contains('show')) {
             closeModal();
         }
-    });
-
-    detailModal.addEventListener('click', (e) => {
-        if (e.target === detailModal) {
+        if (detailModal.classList.contains('show')) {
             closeDetailModal();
         }
-    });
-
-    dateTodosModal.addEventListener('click', (e) => {
-        if (e.target === dateTodosModal) {
+        if (dateTodosModal.classList.contains('show')) {
             closeDateTodosModal();
         }
-    });
-
-    dateAddModal.addEventListener('click', (e) => {
-        if (e.target === dateAddModal) {
+        if (dateAddModal.classList.contains('show')) {
             closeDateAddModal();
         }
-    });
+    }
+});
 
-    // 폼 제출 처리
-    todoForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const title = document.getElementById('todoTitle').value.trim();
-        const description = document.getElementById('todoDescription').value.trim();
-        const date = document.getElementById('todoDate').value;
+// 초기화
+// 초기화
+setupTodoItemEvents();
+loadTodos();
 
-        if (title && description && date) {
-            addTodo(title, description, date);
-        }
-    });
 
-    // ESC 키로 모달 닫기
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            if (modal.classList.contains('show')) {
-                closeModal();
-            }
-            if (detailModal.classList.contains('show')) {
-                closeDetailModal();
-            }
-            if (dateTodosModal.classList.contains('show')) {
-                closeDateTodosModal();
-            }
-            if (dateAddModal.classList.contains('show')) {
-                closeDateAddModal();
-            }
-        }
-    });
-
-    // 초기화
-    // 초기화
-    setupTodoItemEvents();
-    loadTodos();
-
-}
