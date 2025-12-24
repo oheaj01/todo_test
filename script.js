@@ -780,4 +780,4 @@ function renderTodayTodos() {
     setupTodoItemEvents();
     loadTodos();
 
-
+}
